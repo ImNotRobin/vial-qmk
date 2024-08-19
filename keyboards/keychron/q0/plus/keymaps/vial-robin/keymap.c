@@ -14,8 +14,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ch.h"
+#include "hal_usb.h"
+#include "keycodes.h"
+#include "quantum.h"
 #include QMK_KEYBOARD_H
 #include "keychron_common.h"
+
+static bool f24_tracker =  FALSE;
 
 // clang-format off
 
@@ -29,7 +35,7 @@ enum layers {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [BASE] = LAYOUT_numpad_6x5(
         KC_MUTE,   MO(FUNC), KC_ESC,  KC_BSPC,  KC_TAB,
-        MC_1,   KC_NUM,   KC_PSLS, KC_PAST,  KC_PMNS,
+        MC_1,   KC_NO,   KC_PSLS, KC_PAST,  KC_PMNS,
         MC_2,   KC_P7,    KC_P8,   KC_P9,    KC_PPLS,
         MC_3,   KC_P4,    KC_P5,   KC_P6,
         MC_4,   KC_P1,    KC_P2,   KC_P3,    KC_PENT,
@@ -75,9 +81,73 @@ void housekeeping_task_user(void) {
     housekeeping_task_keychron();
 }
 
+enum my_keycodes {
+  SOFT_RESET = QK_KB_0,
+  RESET_F24
+};
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    if (!process_record_keychron(keycode, record)) {
-        return false;
+	switch (keycode) {
+        case KC_A ... KC_UP: // skips numpad
+        case KC_APPLICATION ... KC_F23: //notice how it skips over F24
+        case KC_EXECUTE ... KC_EXSEL: //exsel is the last one before the modifier keys
+			if (record->event.pressed) {
+                // for some reason this registers up and down at the same time sometimes and that breaks everything. see if something changes
+                // swapping to bool MIGHT have fixed
+				register_code(KC_F24); //this means to send F24 down
+				f24_tracker = TRUE;
+				register_code(keycode);
+				return false;
+			}
+			break;
+        case SOFT_RESET:
+            if (record->event.pressed) {
+                // Do something when pressed
+                soft_reset_keyboard(); // not sure if this actually does anything
+            } else {
+                // Do something else when release
+            }
+            return false; // Skip all further processing of this key
+        case RESET_F24:
+            if (record->event.pressed) {
+                f24_tracker = FALSE;
+            }
+        // default:
+        //     return  true;
+	}
+	return true;
+}
+
+void post_process_record_user(uint16_t keycode, keyrecord_t *record) {
+	switch (keycode) {
+        case KC_A ... KC_UP: // skips numpad
+        case KC_APPLICATION ... KC_F23: //notice how it skips over F24
+        case KC_EXECUTE ... KC_EXSEL: //exsel is the last one before the modifier keys
+			if (!record->event.pressed) {
+                // unregister_code(keycode); // just added this - not sure if it helps
+				f24_tracker = FALSE;
+				if (!f24_tracker) {
+					unregister_code(KC_F24); //this means to send F24 up
+				}
+			}
+			break;
+	}
+}
+
+bool rgb_matrix_indicators_user(void) {
+    uint8_t current_layer = get_highest_layer(layer_state);
+    switch (current_layer) {
+        case FUNC:
+            rgb_matrix_set_color_all(0xFF, 0x00, 0x00);  // RGB red
+            break;
+        case L2:
+            rgb_matrix_set_color_all(0x00, 0xFF, 0x00);  // RGB green
+            break;
+        case L3:
+            rgb_matrix_set_color_all(0x00, 0x00, 0xFF);  // RGB blue
+            break;
+        default:
+            break;
     }
-    return true;
+    return false;
 }

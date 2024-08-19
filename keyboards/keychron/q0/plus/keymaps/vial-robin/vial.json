@@ -58,7 +58,15 @@
       "name": "Cortana",
       "title": "Cortana in windows",
       "shortName": "Cortana"
-    }
+    },
+	{"name": "Soft Reset",
+	 "title": "Reboots keyboard without entering bootloader",
+	 "shortName": "Restart"
+	},
+    {"name": "Reset F24 Wrapper",
+    "title": "Resets F24 wrapper if it breaks and I cant type",
+    "shortName": "R_F24"
+   }
   ],
   "matrix": {"rows": 6, "cols": 5},
   "layouts": {

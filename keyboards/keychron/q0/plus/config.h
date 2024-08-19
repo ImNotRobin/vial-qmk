@@ -25,4 +25,4 @@
 #define ENCODER_DEFAULT_POS 0x3
 
 /* Enable num-lock LED */
-#define NUM_LOCK_LED_INDEX 5
+// #define NUM_LOCK_LED_INDEX 5
